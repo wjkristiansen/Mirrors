@@ -4,22 +4,21 @@
 #include <iostream>
 #include <algorithm>
 
-constexpr int Width = 10;
-constexpr int Height = 10;
-
-const char Map[Height][1 + Width] =
+constexpr int Width = 8;
+constexpr int Height = 8;
+constexpr char Map[Height][1 + Width] =
 {
-    "##########",
-    "#P.......#",
-    "#........#",
-    "#........#",
-    "#........#",
-    "#........#",
-    "#........#",
-    "#........#",
-    "#........#",
-    "#######.##",
+    "########",
+    "#P.....#",
+    "#......#",
+	"#...####",
+	"#......#",
+	"#......#",
+	"#......#",
+	"#####.##",
 };
+
+char TraceMap[Height][Width] = { 0 };
 
 enum Dir
 {
@@ -29,61 +28,96 @@ enum Dir
     West
 };
 
-int MoveCost(int x, int y, Dir dir)
+int ExitPathCount = 0;
+int SmallestSolutionMirrorCount = INT_MAX;
+
+int TryMove(int x, int y, Dir dir, int MirrorCount)
 {
-    if (Map[x][y] == '.')
+	int cost = INT_MAX;
+
+    if (Map[x][y] != '#')
     {
         // Is this an exit?
         if (0 == x || 0 == y || Width - 1 == x || Height - 1 == y)
         {
+			ExitPathCount++;
+			std::cout << "Found exit path #" << ExitPathCount << " using " << MirrorCount << " mirrors!!!" << std::endl;
+			SmallestSolutionMirrorCount = std::min(SmallestSolutionMirrorCount, MirrorCount);
             return 0; // reached an exit
         }
-    }
 
-    int cost = INT_MAX;
-    switch (dir)
-    {
-    case North:
-        y = y - 1;
-        if (Map[x][y] == '.')
-        {
-            cost = std::min(cost, MoveCost(x, y, East));
-            cost = std::min(cost, MoveCost(x, y, West));
-            if (cost != INT_MAX) ++cost; // Changed direction
-            cost = std::min(cost, MoveCost(x, y, North));
-        }
-        break;
-    case South:
-        y = y + 1;
-        if (Map[x][y] == '.')
-        {
-            cost = std::min(cost, MoveCost(x, y, East));
-            cost = std::min(cost, MoveCost(x, y, West));
-            if (cost != INT_MAX) ++cost; // Changed direction
-            cost = std::min(cost, MoveCost(x, y, South));
-        }
-        break;
-    case East:
-        x = x + 1;
-        if (Map[x][y] == '.')
-        {
-            cost = std::min(cost, MoveCost(x, y, North));
-            cost = std::min(cost, MoveCost(x, y, South));
-            if (cost != INT_MAX) ++cost; // Changed direction
-            cost = std::min(cost, MoveCost(x, y, East));
-        }
-        break;
-    case West:
-        x = x - 1;
-        if (Map[x][y] == '.')
-        {
-            cost = std::min(cost, MoveCost(x, y, North));
-            cost = std::min(cost, MoveCost(x, y, South));
-            if (cost != INT_MAX) ++cost; // Changed direction
-            cost = std::min(cost, MoveCost(x, y, West));
-        }
-        break;
-    }
+		switch (dir)
+		{
+		case North:
+			y = y - 1;
+			if (Map[x][y] == '.' && TraceMap[x][y] == 0)
+			{
+				TraceMap[x][y] = 1;
+				cost = TryMove(x, y, North, MirrorCount);
+				if (MirrorCount + 1 < SmallestSolutionMirrorCount)
+				{
+					int turncost = std::min(TryMove(x, y, West, MirrorCount + 1), TryMove(x, y, East, MirrorCount + 1));
+					if (turncost != INT_MAX)
+					{
+						cost = std::min(turncost + 1, cost);
+					}
+				}
+				TraceMap[x][y] = 0;
+			}
+			break;
+		case South:
+			y = y + 1;
+			if (Map[x][y] == '.' && TraceMap[x][y] == 0)
+			{
+				TraceMap[x][y] = 1;
+				cost = TryMove(x, y, South, MirrorCount + 1);
+				if (MirrorCount + 1 < SmallestSolutionMirrorCount)
+				{
+					int turncost = std::min(TryMove(x, y, West, MirrorCount + 1), TryMove(x, y, East, MirrorCount + 1));
+					if (turncost != INT_MAX)
+					{
+						cost = std::min(turncost + 1, cost);
+					}
+				}
+				TraceMap[x][y] = 0;
+			}
+			break;
+		case East:
+			x = x + 1;
+			if (Map[x][y] == '.' && TraceMap[x][y] == 0)
+			{
+				TraceMap[x][y] = 1;
+				cost = TryMove(x, y, East, MirrorCount);
+				if (MirrorCount + 1 < SmallestSolutionMirrorCount)
+				{
+					int turncost = std::min(TryMove(x, y, North, MirrorCount + 1), TryMove(x, y, South, MirrorCount + 1));
+					if (turncost != INT_MAX)
+					{
+						cost = std::min(turncost + 1, cost);
+					}
+				}
+				TraceMap[x][y] = 0;
+			}
+			break;
+		case West:
+			x = x - 1;
+			if (Map[x][y] == '.' && TraceMap[x][y] == 0)
+			{
+				TraceMap[x][y] = 1;
+				cost = TryMove(x, y, West, MirrorCount);
+				if (MirrorCount + 1 < SmallestSolutionMirrorCount)
+				{
+					int turncost = std::min(TryMove(x, y, North, MirrorCount + 1), TryMove(x, y, South, MirrorCount + 1));
+					if (turncost != INT_MAX)
+					{
+						cost = std::min(turncost + 1, cost);
+					}
+				}
+				TraceMap[x][y] = 0;
+			}
+			break;
+		}
+	}
 
     return cost;
 }
@@ -97,10 +131,10 @@ int CountMirrors()
         {
             if (Map[x][y] == 'P')
             {
-                int cost = MoveCost(x, y, North);
-                cost = std::min(cost, MoveCost(x, y, South));
-                cost = std::min(cost, MoveCost(x, y, East));
-                cost = std::min(cost, MoveCost(x, y, West));
+                int cost = TryMove(x, y, North, 0);
+                cost = std::min(cost, TryMove(x, y, South, 0));
+                cost = std::min(cost, TryMove(x, y, East, 0));
+                cost = std::min(cost, TryMove(x, y, West, 0));
 
                 return cost;
             }
