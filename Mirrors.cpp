@@ -1,6 +1,8 @@
 // Mirrors.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+// Meaningless comment
+
 #include <iostream>
 #include <algorithm>
 
